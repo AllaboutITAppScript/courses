@@ -157,6 +157,23 @@
       background: linear-gradient(45deg, #667eea, #4c51bf);
       transform: translateY(-2px);
     }
+    
+    /* Copy link button */
+    .copy-link-btn {
+      background: linear-gradient(45deg, #10b981, #34d399);
+      color: white;
+      padding: 10px 16px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s;
+    }
+    
+    .copy-link-btn:hover {
+      background: linear-gradient(45deg, #34d399, #10b981);
+      transform: translateY(-2px);
+    }
   </style>
 </head>
 
@@ -205,9 +222,12 @@
         </h1>
         <p class="text-gray-400">เลือกคอร์สที่สนใจและเริ่มเรียนได้ทันที</p>
       </div>
-      <div id="shareAllButtonContainer" class="hidden">
+      <div id="shareAllButtonContainer" class="hidden flex space-x-2">
         <button id="shareAllButton" class="share-button">
           <i class="fas fa-share-alt mr-2"></i>แชร์คอร์สทั้งหมด
+        </button>
+        <button id="copyAllLinkButton" class="copy-link-btn">
+          <i class="fas fa-link mr-2"></i>คัดลอกลิงก์
         </button>
       </div>
     </div>
@@ -523,7 +543,7 @@
           type: "bubble",
           hero: {
             type: "image",
-            url: courseData.linkimage || "https://via.placeholder.com/800x400/667eea/ffffff?text=คอร์สเรียน",
+            url: courseData.linkimage || "https://images.unsplash.com/photo-1553877522-43269d4ea984?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80",
             size: "full",
             aspectRatio: "20:13",
             aspectMode: "cover"
@@ -597,7 +617,7 @@
                     },
                     {
                       type: "text",
-                      text: detail,
+                      text: detail.substring(0, 50) + (detail.length > 50 ? "..." : ""),
                       size: "sm",
                       color: "#666666",
                       wrap: true,
@@ -786,14 +806,6 @@
                       label: "👁️ ดูคอร์สทั้งหมด",
                       uri: window.location.href
                     }
-                  },
-                  {
-                    type: "text",
-                    text: "เลื่อนดูคอร์สตัวอย่างเพิ่มเติม 👉",
-                    size: "xs",
-                    color: "#666666",
-                    align: "center",
-                    margin: "md"
                   }
                 ]
               }
@@ -804,7 +816,7 @@
               size: "micro",
               hero: {
                 type: "image",
-                url: course.linkimage || "https://via.placeholder.com/400x300/667eea/ffffff?text=คอร์สเรียน",
+                url: course.linkimage || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80",
                 size: "full",
                 aspectRatio: "4:3",
                 aspectMode: "cover"
@@ -815,7 +827,7 @@
                 contents: [
                   {
                     type: "text",
-                    text: course.coursename,
+                    text: course.coursename.substring(0, 30) + (course.coursename.length > 30 ? "..." : ""),
                     weight: "bold",
                     size: "sm",
                     wrap: true,
@@ -869,163 +881,191 @@
       return flexMessage;
     }
     
-    // ฟังก์ชันแชร์คอร์สผ่าน Flex Message
-    async function shareCourseWithFlexMessage(courseData) {
+    // ฟังก์ชันแชร์คอร์สผ่าน sendMessages API
+    async function shareCourseWithMessagesAPI(courseData) {
       if (!liffInitialized) {
         alert("กรุณาลงชื่อเข้าใช้ LINE ก่อนใช้งานฟังก์ชันแชร์");
-        return;
+        return false;
       }
       
       if (!liff.isLoggedIn()) {
         alert("กรุณาลงชื่อเข้าใช้ LINE ก่อนใช้งานฟังก์ชันแชร์");
-        return;
-      }
-      
-      // ตรวจสอบว่ามี API sendMessages หรือไม่
-      if (!liff.isApiAvailable('sendMessages')) {
-        console.error('sendMessages API is not available');
-        
-        // ถ้าใช้ sendMessages ไม่ได้ ให้ใช้ shareTargetPicker แบบธรรมดา
-        const shareMessage = `📚 คอร์สเรียน: ${courseData.coursename}\n💰 ราคา: ${courseData.price}\n🔗 ${window.location.href}`;
-        
-        if (liff.isApiAvailable('shareTargetPicker')) {
-          liff.shareTargetPicker([
-            {
-              type: 'text',
-              text: shareMessage
-            }
-          ])
-          .then(res => {
-            if (res && res.status === 'success') {
-              console.log('แชร์สำเร็จแล้ว');
-            } else {
-              console.log('ผู้ใช้ยกเลิกการแชร์');
-            }
-          })
-          .catch(error => {
-            console.error('เกิดข้อผิดพลาดในการแชร์:', error);
-            alert("ฟังก์ชันแชร์ไม่สามารถใช้งานได้ในขณะนี้");
-          });
-        } else {
-          alert("ฟังก์ชันแชร์ไม่สามารถใช้งานได้ในขณะนี้");
-        }
-        return;
+        return false;
       }
       
       try {
-        // สร้าง Flex Message
-        const flexMessage = createCourseFlexMessage(courseData);
+        // ตรวจสอบว่าเป็นในแชทหรือไม่ (สามารถใช้ sendMessages ได้)
+        const context = liff.getContext();
         
-        // ส่ง Flex Message
-        await liff.sendMessages([flexMessage]);
-        console.log('แชร์ Flex Message สำเร็จแล้ว');
-      } catch (error) {
-        console.error('เกิดข้อผิดพลาดในการแชร์ Flex Message:', error);
-        
-        // ถ้าใช้ Flex Message ไม่ได้ ให้ใช้ข้อความธรรมดา
-        try {
-          const shareMessage = `📚 คอร์สเรียน: ${courseData.coursename}\n💰 ราคา: ${courseData.price}\n🔗 ${window.location.href}`;
-          
-          if (liff.isApiAvailable('shareTargetPicker')) {
-            liff.shareTargetPicker([
-              {
-                type: 'text',
-                text: shareMessage
-              }
-            ])
-            .then(res => {
-              if (res && res.status === 'success') {
-                console.log('แชร์สำเร็จแล้ว');
-              } else {
-                console.log('ผู้ใช้ยกเลิกการแชร์');
-              }
-            });
+        if (context && context.type !== "none") {
+          // อยู่ในแชท สามารถใช้ sendMessages ได้
+          if (liff.isApiAvailable('sendMessages')) {
+            try {
+              // สร้าง Flex Message
+              const flexMessage = createCourseFlexMessage(courseData);
+              
+              // ส่ง Flex Message
+              await liff.sendMessages([flexMessage]);
+              console.log('แชร์ Flex Message สำเร็จแล้ว');
+              return true;
+            } catch (flexError) {
+              console.error('เกิดข้อผิดพลาดในการส่ง Flex Message:', flexError);
+              
+              // ถ้าใช้ Flex Message ไม่ได้ ให้ใช้ข้อความธรรมดา
+              const textMessage = `📚 คอร์สเรียน: ${courseData.coursename}\n💰 ราคา: ${courseData.price}\n🔗 ${window.location.href}\n\n#คอร์สออนไลน์ #ครบเครื่องเรื่องไอที`;
+              
+              await liff.sendMessages([
+                {
+                  type: 'text',
+                  text: textMessage
+                }
+              ]);
+              console.log('แชร์ข้อความสำเร็จแล้ว');
+              return true;
+            }
           }
-        } catch (fallbackError) {
-          console.error('เกิดข้อผิดพลาดในการแชร์แบบ fallback:', fallbackError);
-          alert("ฟังก์ชันแชร์ไม่สามารถใช้งานได้ในขณะนี้");
         }
+        
+        // ถ้าไม่ได้อยู่ในแชท ให้ใช้การคัดลอกลิงก์แทน
+        return await copyCourseLink(courseData);
+        
+      } catch (error) {
+        console.error('เกิดข้อผิดพลาดในการแชร์:', error);
+        
+        // ถ้าเกิดข้อผิดพลาด ให้ใช้การคัดลอกลิงก์แทน
+        return await copyCourseLink(courseData);
       }
     }
     
-    // ฟังก์ชันแชร์คอร์สทั้งหมดผ่าน Flex Message
-    async function shareAllCoursesWithFlexMessage() {
+    // ฟังก์ชันแชร์คอร์สทั้งหมด
+    async function shareAllCoursesWithMessagesAPI() {
       if (!liffInitialized || !liff.isLoggedIn()) {
         alert("กรุณาลงชื่อเข้าใช้ LINE ก่อนใช้งานฟังก์ชันแชร์");
-        return;
+        return false;
       }
       
       if (allCourses.length === 0) {
         alert("ไม่มีข้อมูลคอร์สในขณะนี้");
-        return;
-      }
-      
-      // ตรวจสอบว่ามี API sendMessages หรือไม่
-      if (!liff.isApiAvailable('sendMessages')) {
-        console.error('sendMessages API is not available');
-        
-        // ถ้าใช้ sendMessages ไม่ได้ ให้ใช้ shareTargetPicker แบบธรรมดา
-        const currentDate = new Date().toLocaleDateString('th-TH');
-        const shareMessage = `🎓 คอร์สเรียนออนไลน์ทั้งหมด ${allCourses.length} คอร์ส\n📅 ข้อมูลวันที่ ${currentDate}\n🔗 ${window.location.href}`;
-        
-        if (liff.isApiAvailable('shareTargetPicker')) {
-          liff.shareTargetPicker([
-            {
-              type: 'text',
-              text: shareMessage
-            }
-          ])
-          .then(res => {
-            if (res && res.status === 'success') {
-              console.log('แชร์สำเร็จแล้ว');
-            } else {
-              console.log('ผู้ใช้ยกเลิกการแชร์');
-            }
-          })
-          .catch(error => {
-            console.error('เกิดข้อผิดพลาดในการแชร์:', error);
-            alert("ฟังก์ชันแชร์ไม่สามารถใช้งานได้ในขณะนี้");
-          });
-        } else {
-          alert("ฟังก์ชันแชร์ไม่สามารถใช้งานได้ในขณะนี้");
-        }
-        return;
+        return false;
       }
       
       try {
-        // สร้าง Flex Message สำหรับคอร์สทั้งหมด
-        const flexMessage = createAllCoursesFlexMessage();
+        // ตรวจสอบว่าเป็นในแชทหรือไม่
+        const context = liff.getContext();
         
-        // ส่ง Flex Message
-        await liff.sendMessages([flexMessage]);
-        console.log('แชร์ Flex Message สำเร็จแล้ว');
-      } catch (error) {
-        console.error('เกิดข้อผิดพลาดในการแชร์ Flex Message:', error);
-        
-        // ถ้าใช้ Flex Message ไม่ได้ ให้ใช้ข้อความธรรมดา
-        try {
-          const currentDate = new Date().toLocaleDateString('th-TH');
-          const shareMessage = `🎓 คอร์สเรียนออนไลน์ทั้งหมด ${allCourses.length} คอร์ส\n📅 ข้อมูลวันที่ ${currentDate}\n🔗 ${window.location.href}`;
-          
-          if (liff.isApiAvailable('shareTargetPicker')) {
-            liff.shareTargetPicker([
-              {
-                type: 'text',
-                text: shareMessage
-              }
-            ])
-            .then(res => {
-              if (res && res.status === 'success') {
-                console.log('แชร์สำเร็จแล้ว');
-              } else {
-                console.log('ผู้ใช้ยกเลิกการแชร์');
-              }
-            });
+        if (context && context.type !== "none") {
+          // อยู่ในแชท สามารถใช้ sendMessages ได้
+          if (liff.isApiAvailable('sendMessages')) {
+            try {
+              // สร้าง Flex Message สำหรับคอร์สทั้งหมด
+              const flexMessage = createAllCoursesFlexMessage();
+              
+              // ส่ง Flex Message
+              await liff.sendMessages([flexMessage]);
+              console.log('แชร์ Flex Message คอร์สทั้งหมดสำเร็จแล้ว');
+              return true;
+            } catch (flexError) {
+              console.error('เกิดข้อผิดพลาดในการส่ง Flex Message:', flexError);
+              
+              // ถ้าใช้ Flex Message ไม่ได้ ให้ใช้ข้อความธรรมดา
+              const currentDate = new Date().toLocaleDateString('th-TH');
+              const sampleCourses = allCourses.slice(0, 3).map(c => `• ${c.coursename} - ${c.price}`).join('\n');
+              
+              const textMessage = `🎓 คอร์สเรียนออนไลน์ทั้งหมด ${allCourses.length} คอร์ส\n📅 ข้อมูลวันที่ ${currentDate}\n\n📚 ตัวอย่างคอร์ส:\n${sampleCourses}\n\n🔗 ดูคอร์สทั้งหมด: ${window.location.href}\n\n#คอร์สออนไลน์ #ครบเครื่องเรื่องไอที`;
+              
+              await liff.sendMessages([
+                {
+                  type: 'text',
+                  text: textMessage
+                }
+              ]);
+              console.log('แชร์ข้อความสำเร็จแล้ว');
+              return true;
+            }
           }
-        } catch (fallbackError) {
-          console.error('เกิดข้อผิดพลาดในการแชร์แบบ fallback:', fallbackError);
-          alert("ฟังก์ชันแชร์ไม่สามารถใช้งานได้ในขณะนี้");
         }
+        
+        // ถ้าไม่ได้อยู่ในแชท ให้ใช้การคัดลอกลิงก์แทน
+        return await copyAllCoursesLink();
+        
+      } catch (error) {
+        console.error('เกิดข้อผิดพลาดในการแชร์:', error);
+        
+        // ถ้าเกิดข้อผิดพลาด ให้ใช้การคัดลอกลิงก์แทน
+        return await copyAllCoursesLink();
+      }
+    }
+    
+    // ฟังก์ชันคัดลอกลิงก์คอร์ส
+    async function copyCourseLink(courseData) {
+      const courseInfo = `📚 คอร์สเรียน: ${courseData.coursename}\n💰 ราคา: ${courseData.price}\n🔗 ${window.location.href}`;
+      
+      try {
+        await navigator.clipboard.writeText(courseInfo);
+        alert('คัดลอกลิงก์คอร์สเรียบร้อยแล้ว! คุณสามารถวางในแชท LINE ได้เลย');
+        return true;
+      } catch (err) {
+        console.error('ไม่สามารถคัดลอกได้:', err);
+        
+        // Fallback สำหรับเบราว์เซอร์เก่า
+        const textArea = document.createElement('textarea');
+        textArea.value = courseInfo;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        
+        alert('คัดลอกลิงก์คอร์สเรียบร้อยแล้ว! คุณสามารถวางในแชท LINE ได้เลย');
+        return true;
+      }
+    }
+    
+    // ฟังก์ชันคัดลอกลิงก์คอร์สทั้งหมด
+    async function copyAllCoursesLink() {
+      const currentDate = new Date().toLocaleDateString('th-TH');
+      const linkText = `🎓 คอร์สเรียนออนไลน์ทั้งหมด ${allCourses.length} คอร์ส\n📅 ข้อมูลวันที่ ${currentDate}\n🔗 ${window.location.href}`;
+      
+      try {
+        await navigator.clipboard.writeText(linkText);
+        alert('คัดลอกลิงก์คอร์สทั้งหมดเรียบร้อยแล้ว! คุณสามารถวางในแชท LINE ได้เลย');
+        return true;
+      } catch (err) {
+        console.error('ไม่สามารถคัดลอกได้:', err);
+        
+        // Fallback
+        const textArea = document.createElement('textarea');
+        textArea.value = linkText;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        
+        alert('คัดลอกลิงก์คอร์สทั้งหมดเรียบร้อยแล้ว! คุณสามารถวางในแชท LINE ได้เลย');
+        return true;
+      }
+    }
+    
+    // ฟังก์ชันคัดลอกลิงก์เว็บไซต์
+    async function copyWebsiteLink() {
+      const websiteUrl = window.location.href;
+      
+      try {
+        await navigator.clipboard.writeText(websiteUrl);
+        alert('คัดลอกลิงก์เว็บไซต์เรียบร้อยแล้ว!');
+        return true;
+      } catch (err) {
+        console.error('ไม่สามารถคัดลอกได้:', err);
+        
+        // Fallback
+        const textArea = document.createElement('textarea');
+        textArea.value = websiteUrl;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        
+        alert('คัดลอกลิงก์เว็บไซต์เรียบร้อยแล้ว!');
+        return true;
       }
     }
 
@@ -1092,7 +1132,7 @@
                 <i class="fas fa-qrcode mr-2"></i>สนับสนุนคอร์สนี้
               </button>
               <div class="grid grid-cols-2 gap-2">
-                <button onclick="shareCourseWithFlexMessage(${JSON.stringify(article).replace(/"/g, '&quot;')})" class="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-medium py-3 px-2 rounded-lg transition-all duration-300 flex items-center justify-center text-sm">
+                <button onclick="shareSingleCourse(${JSON.stringify(article).replace(/"/g, '&quot;')})" class="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-medium py-3 px-2 rounded-lg transition-all duration-300 flex items-center justify-center text-sm">
                   <i class="fas fa-share-alt mr-2"></i>แชร์
                 </button>
                 <a href="https://line.me/R/oaMessage/@692ajmyz/เลขบัญชี" target="_blank" class="border border-blue-600 text-blue-400 hover:bg-gray-700 font-medium py-3 px-2 rounded-lg transition-all duration-300 flex items-center justify-center text-sm">
@@ -1104,6 +1144,14 @@
         `;
         cardContainer.appendChild(card);
       });
+    }
+
+    // ฟังก์ชันแชร์คอร์สเดียว (สำหรับใช้ใน onclick)
+    async function shareSingleCourse(courseData) {
+      const success = await shareCourseWithMessagesAPI(courseData);
+      if (success) {
+        console.log('แชร์คอร์สสำเร็จ');
+      }
     }
 
     // สร้างฟังก์ชันสำหรับสร้างเมนูแบ่งหน้า
@@ -1423,12 +1471,13 @@
       document.getElementById('confirmPaymentBtn').addEventListener('click', confirmPayment);
       document.getElementById('themeToggle').addEventListener('click', toggleTheme);
       document.getElementById('liffLoginButton').addEventListener('click', loginToLine);
-      document.getElementById('shareAllButton').addEventListener('click', shareAllCoursesWithFlexMessage);
+      document.getElementById('shareAllButton').addEventListener('click', shareAllCoursesWithMessagesAPI);
+      document.getElementById('copyAllLinkButton').addEventListener('click', copyWebsiteLink);
       
       // ปุ่มแชร์ใน modal
-      document.getElementById('shareCourseButton').addEventListener('click', function() {
+      document.getElementById('shareCourseButton').addEventListener('click', async function() {
         if (currentCourseData) {
-          shareCourseWithFlexMessage(currentCourseData);
+          await shareCourseWithMessagesAPI(currentCourseData);
           closeQRModal();
         }
       });
