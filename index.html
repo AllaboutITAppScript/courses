@@ -695,7 +695,7 @@
       }
     }
     
-    // ฟังก์ชันแชร์คอร์ส
+    // ฟังก์ชันแชร์คอร์สด้วย Flex Message
     function shareCourse(courseData) {
       if (!liffInitialized) {
         alert("กรุณาลงชื่อเข้าใช้ LINE ก่อนใช้งานฟังก์ชันแชร์");
@@ -707,6 +707,198 @@
         return;
       }
       
+      // กำหนดสีแบดจ์ตามหมวดหมู่
+      let badgeColor = "#3B82F6"; // สีน้ำเงินสำหรับทั่วไป
+      let badgeText = "ทั่วไป";
+      
+      if (courseData.category) {
+        if (courseData.category === 'advanced') {
+          badgeColor = "#DC2626";
+          badgeText = "ขั้นสูง";
+        } else if (courseData.category === 'intermediate') {
+          badgeColor = "#D97706";
+          badgeText = "ปานกลาง";
+        } else if (courseData.category === 'basic') {
+          badgeColor = "#059669";
+          badgeText = "พื้นฐาน";
+        }
+      }
+      
+      // ดึงราคาจากข้อมูล
+      const priceMatch = courseData.price ? courseData.price.match(/\d+/) : null;
+      const coursePrice = priceMatch ? priceMatch[0] : '500';
+      
+      // ใช้รูปภาพเริ่มต้นหากไม่มี
+      const courseImage = courseData.linkimage || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80';
+      
+      // สร้าง Flex Message
+      const flexMessage = {
+        type: "flex",
+        altText: `คอร์สเรียน: ${courseData.coursename} - ${courseData.price}`,
+        contents: {
+          type: "bubble",
+          size: "kilo",
+          hero: {
+            type: "image",
+            url: courseImage,
+            size: "full",
+            aspectRatio: "1:1",
+            aspectMode: "cover",
+            backgroundColor: "#1F2937"
+          },
+          body: {
+            type: "box",
+            layout: "vertical",
+            contents: [
+              {
+                type: "text",
+                text: courseData.coursename,
+                weight: "bold",
+                size: "lg",
+                color: "#FFFFFF",
+                wrap: true,
+                maxLines: 2,
+                margin: "none"
+              },
+              {
+                type: "box",
+                layout: "baseline",
+                contents: [
+                  {
+                    type: "text",
+                    text: "💰",
+                    size: "sm",
+                    flex: 0
+                  },
+                  {
+                    type: "text",
+                    text: courseData.price,
+                    weight: "bold",
+                    size: "xl",
+                    color: "#10B981",
+                    flex: 5,
+                    wrap: true
+                  }
+                ],
+                spacing: "sm",
+                margin: "md"
+              },
+              {
+                type: "box",
+                layout: "baseline",
+                contents: [
+                  {
+                    type: "text",
+                    text: "⭐",
+                    size: "sm",
+                    flex: 0
+                  },
+                  {
+                    type: "text",
+                    text: courseData.rating || "4.5",
+                    size: "sm",
+                    color: "#FBBF24",
+                    flex: 0
+                  },
+                  {
+                    type: "text",
+                    text: "•",
+                    size: "sm",
+                    color: "#6B7280",
+                    flex: 0,
+                    margin: "sm"
+                  },
+                  {
+                    type: "text",
+                    text: badgeText,
+                    size: "sm",
+                    color: badgeColor,
+                    weight: "bold",
+                    flex: 0
+                  }
+                ],
+                spacing: "sm",
+                margin: "sm"
+              },
+              {
+                type: "box",
+                layout: "vertical",
+                contents: [
+                  {
+                    type: "text",
+                    text: courseData.details ? 
+                      (courseData.details.split('\n')[0]?.substring(0, 60) || "คอร์สเรียนคุณภาพสูงจากครบเครื่องเรื่องไอที") : 
+                      "คอร์สเรียนคุณภาพสูงจากครบเครื่องเรื่องไอที",
+                    size: "sm",
+                    color: "#D1D5DB",
+                    wrap: true,
+                    margin: "md",
+                    maxLines: 2
+                  }
+                ],
+                margin: "md"
+              }
+            ],
+            backgroundColor: "#1F2937",
+            paddingAll: "lg"
+          },
+          footer: {
+            type: "box",
+            layout: "vertical",
+            contents: [
+              {
+                type: "button",
+                action: {
+                  type: "uri",
+                  label: "ดูรายละเอียด",
+                  uri: window.location.href
+                },
+                style: "primary",
+                color: "#3B82F6",
+                height: "sm"
+              },
+              {
+                type: "button",
+                action: {
+                  type: "uri",
+                  label: "สนับสนุนคอร์ส",
+                  uri: `https://line.me/R/oaMessage/@513pzbxe?text=${encodeURIComponent(`สนับสนุนคอร์ส: ${courseData.coursename}`)}`
+                },
+                style: "secondary",
+                color: "#10B981",
+                margin: "sm",
+                height: "sm"
+              }
+            ],
+            paddingAll: "md",
+            backgroundColor: "#111827"
+          }
+        }
+      };
+      
+      // ใช้ Share Target Picker
+      if (liff.isApiAvailable('shareTargetPicker')) {
+        liff.shareTargetPicker([flexMessage])
+          .then(res => {
+            if (res && res.status === 'success') {
+              console.log('แชร์สำเร็จแล้ว');
+            } else {
+              console.log('ผู้ใช้ยกเลิกการแชร์');
+            }
+          })
+          .catch(error => {
+            console.error('เกิดข้อผิดพลาดในการแชร์:', error);
+            // ถ้าแชร์ Flex Message ล้มเหลว ให้ใช้ข้อความธรรมดาแทน
+            shareCourseWithText(courseData);
+          });
+      } else {
+        // ถ้าใช้ Flex Message ไม่ได้ ให้ใช้ข้อความธรรมดา
+        shareCourseWithText(courseData);
+      }
+    }
+    
+    // ฟังก์ชันแชร์คอร์สด้วยข้อความธรรมดา (สำรอง)
+    function shareCourseWithText(courseData) {
       const shareMessage = `
 📚 คอร์สเรียนออนไลน์ที่น่าสนใจ!
 
@@ -720,28 +912,23 @@ ${window.location.href}
 #คอร์สออนไลน์ #เรียนออนไลน์ #ครบเครื่องเรื่องไอที
       `.trim();
       
-      // ใช้ Share Target Picker
-      if (liff.isApiAvailable('shareTargetPicker')) {
-        liff.shareTargetPicker([
-          {
-            type: 'text',
-            text: shareMessage
-          }
-        ])
-        .then(res => {
-          if (res && res.status === 'success') {
-            console.log('แชร์สำเร็จแล้ว');
-          } else {
-            console.log('ผู้ใช้ยกเลิกการแชร์');
-          }
-        })
-        .catch(error => {
-          console.error('เกิดข้อผิดพลาดในการแชร์:', error);
-          alert("ฟังก์ชันแชร์ไม่สามารถใช้งานได้ในขณะนี้");
-        });
-      } else {
+      liff.shareTargetPicker([
+        {
+          type: 'text',
+          text: shareMessage
+        }
+      ])
+      .then(res => {
+        if (res && res.status === 'success') {
+          console.log('แชร์สำเร็จแล้ว');
+        } else {
+          console.log('ผู้ใช้ยกเลิกการแชร์');
+        }
+      })
+      .catch(error => {
+        console.error('เกิดข้อผิดพลาดในการแชร์:', error);
         alert("ฟังก์ชันแชร์ไม่สามารถใช้งานได้ในขณะนี้");
-      }
+      });
     }
     
     // ฟังก์ชันแชร์คอร์สทั้งหมด
@@ -751,6 +938,154 @@ ${window.location.href}
         return;
       }
       
+      const currentDate = new Date().toLocaleDateString('th-TH');
+      
+      // สร้าง Flex Message สำหรับคอร์สทั้งหมด
+      const flexMessage = {
+        type: "flex",
+        altText: `คอร์สเรียนออนไลน์ทั้งหมดจาก "ครบเครื่อง เรื่องไอที"`,
+        contents: {
+          type: "bubble",
+          size: "giga",
+          hero: {
+            type: "image",
+            url: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80",
+            size: "full",
+            aspectRatio: "20:13",
+            aspectMode: "cover",
+            backgroundColor: "#1F2937"
+          },
+          body: {
+            type: "box",
+            layout: "vertical",
+            contents: [
+              {
+                type: "text",
+                text: "🎓 คอร์สเรียนออนไลน์ทั้งหมด",
+                weight: "bold",
+                size: "xl",
+                color: "#FFFFFF",
+                wrap: true
+              },
+              {
+                type: "text",
+                text: "จากครบเครื่อง เรื่องไอที",
+                size: "md",
+                color: "#D1D5DB",
+                wrap: true,
+                margin: "sm"
+              },
+              {
+                type: "separator",
+                margin: "lg"
+              },
+              {
+                type: "box",
+                layout: "vertical",
+                contents: [
+                  {
+                    type: "text",
+                    text: `📊 รวมทั้งหมด ${allCourses.length} คอร์ส`,
+                    size: "sm",
+                    color: "#9CA3AF",
+                    margin: "sm"
+                  },
+                  {
+                    type: "text",
+                    text: `📅 อัพเดทล่าสุด: ${currentDate}`,
+                    size: "sm",
+                    color: "#9CA3AF",
+                    margin: "xs"
+                  }
+                ],
+                margin: "lg"
+              },
+              {
+                type: "box",
+                layout: "vertical",
+                contents: allCourses.slice(0, 3).map((course, index) => ({
+                  type: "box",
+                  layout: "horizontal",
+                  contents: [
+                    {
+                      type: "text",
+                      text: `${index + 1}.`,
+                      size: "sm",
+                      color: "#9CA3AF",
+                      flex: 0
+                    },
+                    {
+                      type: "text",
+                      text: course.coursename,
+                      size: "sm",
+                      color: "#E5E7EB",
+                      wrap: true,
+                      flex: 5,
+                      margin: "sm"
+                    },
+                    {
+                      type: "text",
+                      text: course.price,
+                      size: "sm",
+                      color: "#10B981",
+                      align: "end",
+                      flex: 2
+                    }
+                  ],
+                  spacing: "sm",
+                  margin: "xs"
+                })),
+                margin: "md"
+              }
+            ],
+            backgroundColor: "#1F2937",
+            paddingAll: "lg"
+          },
+          footer: {
+            type: "box",
+            layout: "vertical",
+            contents: [
+              {
+                type: "button",
+                action: {
+                  type: "uri",
+                  label: "ดูคอร์สทั้งหมด",
+                  uri: window.location.href
+                },
+                style: "primary",
+                color: "#3B82F6",
+                height: "sm"
+              }
+            ],
+            paddingAll: "md",
+            backgroundColor: "#111827"
+          }
+        }
+      };
+      
+      // ใช้ Share Target Picker
+      if (liff.isApiAvailable('shareTargetPicker')) {
+        liff.shareTargetPicker([flexMessage])
+          .then(res => {
+            if (res && res.status === 'success') {
+              console.log('แชร์สำเร็จแล้ว');
+            } else {
+              console.log('ผู้ใช้ยกเลิกการแชร์');
+            }
+          })
+          .catch(error => {
+            console.error('เกิดข้อผิดพลาดในการแชร์:', error);
+            // ถ้าแชร์ Flex Message ล้มเหลว ให้ใช้ข้อความธรรมดาแทน
+            shareAllCoursesWithText();
+          });
+      } else {
+        // ถ้าใช้ Flex Message ไม่ได้ ให้ใช้ข้อความธรรมดา
+        shareAllCoursesWithText();
+      }
+    }
+    
+    // ฟังก์ชันแชร์คอร์สทั้งหมดด้วยข้อความธรรมดา (สำรอง)
+    function shareAllCoursesWithText() {
       const currentDate = new Date().toLocaleDateString('th-TH');
       const shareMessage = `
 🎓 คอร์สเรียนออนไลน์ทั้งหมดจาก "ครบเครื่อง เรื่องไอที"
@@ -769,28 +1104,23 @@ ${window.location.href}
 #คอร์สออนไลน์ #เรียนออนไลน์ #ครบเครื่องเรื่องไอที
       `.trim();
       
-      // ใช้ Share Target Picker
-      if (liff.isApiAvailable('shareTargetPicker')) {
-        liff.shareTargetPicker([
-          {
-            type: 'text',
-            text: shareMessage
-          }
-        ])
-        .then(res => {
-          if (res && res.status === 'success') {
-            console.log('แชร์สำเร็จแล้ว');
-          } else {
-            console.log('ผู้ใช้ยกเลิกการแชร์');
-          }
-        })
-        .catch(error => {
-          console.error('เกิดข้อผิดพลาดในการแชร์:', error);
-          alert("ฟังก์ชันแชร์ไม่สามารถใช้งานได้ในขณะนี้");
-        });
-      } else {
+      liff.shareTargetPicker([
+        {
+          type: 'text',
+          text: shareMessage
+        }
+      ])
+      .then(res => {
+        if (res && res.status === 'success') {
+          console.log('แชร์สำเร็จแล้ว');
+        } else {
+          console.log('ผู้ใช้ยกเลิกการแชร์');
+        }
+      })
+      .catch(error => {
+        console.error('เกิดข้อผิดพลาดในการแชร์:', error);
         alert("ฟังก์ชันแชร์ไม่สามารถใช้งานได้ในขณะนี้");
-      }
+      });
     }
 
     // ฟังก์ชันกรองคอร์ส
