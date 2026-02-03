@@ -945,10 +945,85 @@ ${window.location.href}
       
       const currentDate = new Date().toLocaleDateString('th-TH');
       
+      // สร้างรายการคอร์สแบบย่อ (จำกัดที่ 5 คอร์สแรก)
+      const courseListItems = allCourses.slice(0, 5).map((course, index) => ({
+        type: "box",
+        layout: "vertical",
+        contents: [
+          {
+            type: "text",
+            text: `${index + 1}. ${course.coursename}`,
+            size: "sm",
+            color: "#E5E7EB",
+            wrap: true,
+            maxLines: 2
+          },
+          {
+            type: "box",
+            layout: "baseline",
+            contents: [
+              {
+                type: "text",
+                text: "💰 ",
+                size: "xs",
+                color: "#10B981",
+                flex: 0
+              },
+              {
+                type: "text",
+                text: course.price,
+                size: "xs",
+                color: "#10B981",
+                weight: "bold",
+                flex: 1
+              },
+              {
+                type: "filler"
+              },
+              {
+                type: "text",
+                text: "⭐ ",
+                size: "xs",
+                color: "#FBBF24",
+                flex: 0
+              },
+              {
+                type: "text",
+                text: course.rating || "4.5",
+                size: "xs",
+                color: "#FBBF24",
+                flex: 0
+              }
+            ],
+            margin: "xs"
+          }
+        ],
+        spacing: "xs",
+        margin: "sm",
+        paddingTop: "sm",
+        paddingBottom: "sm",
+        paddingStart: "md",
+        paddingEnd: "md",
+        backgroundColor: "#1F2937",
+        cornerRadius: "sm"
+      }));
+      
+      // ถ้ามีคอร์สมากกว่า 5 ให้เพิ่มข้อความแสดงจำนวนคอร์สทั้งหมด
+      if (allCourses.length > 5) {
+        courseListItems.push({
+          type: "text",
+          text: `...และอีก ${allCourses.length - 5} คอร์ส`,
+          size: "xs",
+          color: "#9CA3AF",
+          align: "center",
+          margin: "sm"
+        });
+      }
+      
       // สร้าง Flex Message สำหรับคอร์สทั้งหมด
       const flexMessage = {
         type: "flex",
-        altText: `คอร์สเรียนออนไลน์ทั้งหมดจาก "ครบเครื่อง เรื่องไอที"`,
+        altText: `คอร์สเรียนออนไลน์ทั้งหมดจาก "ครบเครื่อง เรื่องไอที" - รวม ${allCourses.length} คอร์ส`,
         contents: {
           type: "bubble",
           size: "giga",
@@ -1006,41 +1081,22 @@ ${window.location.href}
                 margin: "lg"
               },
               {
+                type: "separator",
+                margin: "lg"
+              },
+              {
+                type: "text",
+                text: "📚 คอร์สแนะนำ",
+                size: "md",
+                color: "#FFFFFF",
+                weight: "bold",
+                margin: "lg"
+              },
+              {
                 type: "box",
                 layout: "vertical",
-                contents: allCourses.slice(0, 3).map((course, index) => ({
-                  type: "box",
-                  layout: "horizontal",
-                  contents: [
-                    {
-                      type: "text",
-                      text: `${index + 1}.`,
-                      size: "sm",
-                      color: "#9CA3AF",
-                      flex: 0
-                    },
-                    {
-                      type: "text",
-                      text: course.coursename,
-                      size: "sm",
-                      color: "#E5E7EB",
-                      wrap: true,
-                      flex: 5,
-                      margin: "sm"
-                    },
-                    {
-                      type: "text",
-                      text: course.price,
-                      size: "sm",
-                      color: "#10B981",
-                      align: "end",
-                      flex: 2
-                    }
-                  ],
-                  spacing: "sm",
-                  margin: "xs"
-                })),
-                margin: "md"
+                contents: courseListItems,
+                margin: "sm"
               }
             ],
             backgroundColor: "#1F2937",
@@ -1059,6 +1115,18 @@ ${window.location.href}
                 },
                 style: "primary",
                 color: "#3B82F6",
+                height: "sm"
+              },
+              {
+                type: "button",
+                action: {
+                  type: "uri",
+                  label: "ติดต่อสอบถาม",
+                  uri: "https://line.me/R/oaMessage/@692ajmyz"
+                },
+                style: "secondary",
+                color: "#10B981",
+                margin: "sm",
                 height: "sm"
               }
             ],
@@ -1099,12 +1167,16 @@ ${window.location.href}
 📊 รวมทั้งหมด ${allCourses.length} คอร์ส
 
 📚 ตัวอย่างคอร์สที่น่าสนใจ:
-${allCourses.slice(0, 3).map((course, index) => 
-  `${index + 1}. ${course.coursename} - ${course.price}`
+${allCourses.slice(0, 5).map((course, index) => 
+  `${index + 1}. ${course.coursename} - ${course.price} ${course.rating ? `(⭐ ${course.rating})` : ''}`
 ).join('\n')}
+
+${allCourses.length > 5 ? `...และอีก ${allCourses.length - 5} คอร์ส\n` : ''}
 
 🔗 ดูคอร์สทั้งหมดและสมัครเรียนได้ที่:
 ${window.location.href}
+
+📱 ติดต่อสอบถาม: @692ajmyz
 
 #คอร์สออนไลน์ #เรียนออนไลน์ #ครบเครื่องเรื่องไอที
       `.trim();
